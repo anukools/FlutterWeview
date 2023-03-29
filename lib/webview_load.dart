@@ -12,7 +12,7 @@ class _WebViewStackState extends State<WebViewApp>
     with AutomaticKeepAliveClientMixin {
   var loadingPercentage = 0;
   late final WebViewController controller;
-  var url = 'https://flutter.dev';
+  var url = 'https://asthatrade.com/product/flow';
 
   @override
   bool get wantKeepAlive => true;
