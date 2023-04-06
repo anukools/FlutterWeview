@@ -13,6 +13,7 @@ class _WebViewStackState extends State<WebViewApp>
   var loadingPercentage = 0;
   late final WebViewController controller;
   var url = 'https://asthatrade.com/product/flow';
+  var isWebViewVisible = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -38,34 +39,85 @@ class _WebViewStackState extends State<WebViewApp>
             loadingPercentage = 100;
           });
         },
-      ))
-      ..loadRequest(
-        Uri.parse(url),
-      );
+      ));
+  }
+
+  void updateState(var value) {
+    setState(() {
+      isWebViewVisible = value;
+      if (value && loadingPercentage < 100) {
+        controller.loadRequest(
+          Uri.parse(url),
+        );
+      }
+    });
+  }
+
+  Future<bool> _onWillPop() async {
+    return (await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: new Text('Are you sure?'),
+            content: new Text('Do you want to go back?'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                //<-- SEE HERE
+                child: new Text('No'),
+              ),
+              TextButton(
+                onPressed: () => {
+                  isWebViewVisible
+                      ?  {updateState(false), Navigator.of(context).pop(false)}
+                      : Navigator.of(context).pop(true)
+                },
+                // <-- SEE HERE
+                child: new Text('Yes'),
+              ),
+            ],
+          ),
+        )) ??
+        false;
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pop(context);
-            }),
-        title: Text('Second Screen'),
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(
-            controller: controller,
-          ),
-          if (loadingPercentage < 100)
-            LinearProgressIndicator(
-              value: loadingPercentage / 100.0,
-            ),
-        ],
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: isWebViewVisible
+            ? AppBar(
+                leading: IconButton(
+                    icon: Icon(Icons.arrow_back),
+                    onPressed: () {
+                      updateState(false);
+                    }),
+                title: Text('Second Screen'),
+              )
+            : AppBar(
+                title: const Text('First Screen'),
+              ),
+        body: isWebViewVisible
+            ? Stack(
+                children: [
+                  WebViewWidget(
+                    controller: controller,
+                  ),
+                  if (loadingPercentage < 100)
+                    LinearProgressIndicator(
+                      value: loadingPercentage / 100.0,
+                    ),
+                ],
+              )
+            : Center(
+                child: OutlinedButton(
+                  child: const Text('Open WebView'),
+                  onPressed: () {
+                    updateState(true);
+                  },
+                ),
+              ),
       ),
     );
   }
